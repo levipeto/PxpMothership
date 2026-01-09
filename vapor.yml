@@ -10,6 +10,6 @@ environments:
     build:
       - 'composer install --no-dev --no-scripts --no-interaction'
       - 'composer dump-autoload --optimize'
-      - "sed -i \"s/'key' => env('AWS_ACCESS_KEY_ID')/'key' => env('NULL_AWS_ACCESS_KEY_ID')/g\" vendor/laravel/framework/config/cache.php"
+      - "sed -i '' \"s/'key' => env('AWS_ACCESS_KEY_ID')/'key' => env('NULL_AWS_ACCESS_KEY_ID')/g\" vendor/laravel/framework/config/cache.php"
       - 'php artisan event:cache'
       - 'npm ci && npm run build && rm -rf node_modules'
