@@ -1,0 +1,15 @@
+id: 74250
+name: Mothership
+environments:
+  production:
+    domain: 'pannonexpo.hu'
+    memory: 1024
+    cli-memory: 512
+    database: Mothership
+    runtime: 'php-8.4:al2'
+    build:
+      - 'rm -rf vendor'
+      - 'composer install --no-dev --no-scripts'
+      - 'composer dump-autoload --optimize'
+      - 'php artisan event:cache'
+      - 'npm ci && npm run build && rm -rf node_modules'
