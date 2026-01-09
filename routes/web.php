@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Debug\LegacyDbConnection;
 use App\Livewire\Insights\CourierCoverage;
 use App\Livewire\Insights\CourierLoad;
 use App\Livewire\Insights\CustomerHealth;
@@ -20,6 +21,9 @@ Route::view('dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
+    // Debug
+    Route::get('debug/legacy-db', LegacyDbConnection::class)->name('debug.legacy-db');
+
     // Insights
     Route::get('insights/courier-load', CourierLoad::class)->name('insights.courier-load');
     Route::get('insights/courier-coverage', CourierCoverage::class)->name('insights.courier-coverage');
