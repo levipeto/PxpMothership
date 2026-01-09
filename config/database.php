@@ -80,8 +80,8 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
                 PDO::ATTR_TIMEOUT => (int) env('DB_LEGACY_TIMEOUT', 120),
-                PDO::MYSQL_ATTR_READ_TIMEOUT => (int) env('DB_LEGACY_READ_TIMEOUT', 120),
-                PDO::MYSQL_ATTR_WRITE_TIMEOUT => (int) env('DB_LEGACY_WRITE_TIMEOUT', 120),
+                (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_READ_TIMEOUT : \PDO::MYSQL_ATTR_READ_TIMEOUT) => (int) env('DB_LEGACY_READ_TIMEOUT', 120),
+                (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_WRITE_TIMEOUT : \PDO::MYSQL_ATTR_WRITE_TIMEOUT) => (int) env('DB_LEGACY_WRITE_TIMEOUT', 120),
             ]) : [],
         ],
 
