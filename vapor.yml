@@ -8,8 +8,6 @@ environments:
     database: Mothership
     runtime: 'php-8.4:al2'
     build:
-      - 'rm -rf vendor'
-      - 'composer install --no-dev --no-scripts'
-      - 'composer dump-autoload --optimize'
+      - 'COMPOSER_MIRROR_PATH_REPOS=1 composer install --no-dev'
       - 'php artisan event:cache'
       - 'npm ci && npm run build && rm -rf node_modules'
