@@ -19,8 +19,11 @@ class CustomerHealth extends Component
 {
     use WithPagination;
 
-    private const MIN_PREVIOUS_SHIPMENTS = 5;
+    private const MIN_PREVIOUS_SHIPMENTS = 10;
+
     private const PER_PAGE = 25;
+
+    private const DEMO_DAYS = 50;
 
     public int $year;
 
@@ -45,19 +48,11 @@ class CustomerHealth extends Component
     #[Computed]
     public function customerHealthData(): Collection
     {
-        $year = $this->year;
         $minShipments = self::MIN_PREVIOUS_SHIPMENTS;
+        $demoDays = self::DEMO_DAYS;
 
-        // Build month ranges for Jan-Dec
-        $monthSelects = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $start = Carbon::create($year, $m, 1)->startOfMonth()->format('Y-m-d');
-            $end = Carbon::create($year, $m, 1)->endOfMonth()->format('Y-m-d');
-            $monthSelects[] = DB::raw("SUM(CASE WHEN k_kiszallitas_datum >= '{$start}' AND k_kiszallitas_datum <= '{$end}' THEN 1 ELSE 0 END) as m{$m}_count");
-            $monthSelects[] = DB::raw("SUM(CASE WHEN k_kiszallitas_datum >= '{$start}' AND k_kiszallitas_datum <= '{$end}' THEN k_fd_netto ELSE 0 END) as m{$m}_revenue");
-        }
-
-        $yearStart = Carbon::create($year, 1, 1)->format('Y-m-d');
+        // For demo: simple query - last N days only
+        $startDate = now()->subDays($demoDays)->format('Y-m-d');
 
         return Kuldemeny::query()
             ->notDeleted()
@@ -65,46 +60,33 @@ class CustomerHealth extends Component
                 'k_ugyfelkod',
                 'k_uf_ceg_nev',
                 DB::raw('MAX(k_kiszallitas_datum) as last_shipment'),
-                ...$monthSelects
+                DB::raw('COUNT(*) as total_shipments')
             )
-            ->whereDate('k_kiszallitas_datum', '>=', $yearStart)
+            ->where('k_kiszallitas_datum', '>=', $startDate)
             ->groupBy('k_ugyfelkod', 'k_uf_ceg_nev')
-            ->having(DB::raw('COUNT(*)'), '>=', $minShipments)
+            ->having('total_shipments', '>=', $minShipments)
+            ->orderByDesc('total_shipments')
+            ->limit(30)
             ->get()
-            ->map(function ($customer) use ($year) {
+            ->map(function ($customer) {
                 $lastShipment = $customer->last_shipment ? Carbon::parse($customer->last_shipment) : null;
-                $isCurrentYear = $year === Carbon::now()->year;
+                $daysSinceShipment = $lastShipment ? (int) $lastShipment->diffInDays(now()) : null;
 
-                // For current year, use current month; for past years, use December
-                $referenceMonth = $isCurrentYear ? Carbon::now()->month : 12;
-                // For calculating "days since", use now() for current year, end of year for past years
-                $referenceDate = $isCurrentYear ? now() : Carbon::create($year, 12, 31)->endOfDay();
-
-                // Get counts for all months
-                $months = [];
-                for ($m = 1; $m <= 12; $m++) {
-                    $months[$m] = [
-                        'count' => (int) $customer->{"m{$m}_count"},
-                        'revenue' => (int) $customer->{"m{$m}_revenue"},
-                    ];
-                }
-
-                // Calculate average of previous months (excluding reference month) for health status
-                $previousMonths = array_filter($months, fn ($m, $key) => $key < $referenceMonth, ARRAY_FILTER_USE_BOTH);
-                $previousCounts = array_column($previousMonths, 'count');
-                $avgPrevious = count($previousCounts) > 0 ? array_sum($previousCounts) / count($previousCounts) : 0;
-
-                $current = $months[$referenceMonth]['count'];
-                $change = $avgPrevious > 0 ? (($current - $avgPrevious) / $avgPrevious) * 100 : 0;
-                $daysSinceShipment = $lastShipment ? (int) $lastShipment->diffInDays($referenceDate) : null;
-                $status = $this->calculateHealthStatus($current, (int) round($avgPrevious), $daysSinceShipment);
+                // Simplified health status based on days since last shipment
+                $status = match (true) {
+                    $daysSinceShipment === null => 'churned',
+                    $daysSinceShipment >= 30 => 'critical',
+                    $daysSinceShipment >= 14 => 'at_risk',
+                    $daysSinceShipment >= 7 => 'warning',
+                    default => 'healthy',
+                };
 
                 return (object) [
                     'ugyfelkod' => $customer->k_ugyfelkod,
                     'company_name' => $customer->k_uf_ceg_nev,
-                    'months' => $months,
-                    'avg_previous' => round($avgPrevious, 1),
-                    'change_percent' => round($change, 1),
+                    'months' => [],
+                    'avg_previous' => $customer->total_shipments,
+                    'change_percent' => 0,
                     'last_shipment' => $lastShipment,
                     'days_since_shipment' => $daysSinceShipment,
                     'status' => $status,
@@ -191,12 +173,8 @@ class CustomerHealth extends Component
     #[Computed]
     public function monthLabels(): array
     {
-        $labels = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $labels[$m] = Carbon::create($this->year, $m, 1)->translatedFormat('M');
-        }
-
-        return $labels;
+        // Simplified for demo - no monthly breakdown
+        return [];
     }
 
     #[Computed]

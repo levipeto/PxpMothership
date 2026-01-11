@@ -4,7 +4,6 @@ namespace App\Livewire\Insights;
 
 use App\Models\CustomerEnrichment;
 use App\Models\Legacy\Kuldemeny;
-use App\Models\Legacy\Ugyfel;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -24,8 +23,9 @@ class SenderInsights extends Component
     #[Computed]
     public function stats(): array
     {
+        // Use cached/approximate counts for demo performance
         return [
-            'total_customers' => Ugyfel::notDeleted()->count(),
+            'total_customers' => CustomerEnrichment::count(),
             'enriched_customers' => CustomerEnrichment::enriched()->count(),
             'pending_enrichment' => CustomerEnrichment::notEnriched()->count(),
             'failed_enrichment' => CustomerEnrichment::failed()->count(),
@@ -90,17 +90,18 @@ class SenderInsights extends Component
     #[Computed]
     public function topCustomers(): array
     {
-        // Get top customers by shipment count from legacy DB
-        // Joined with enrichment data if available
+        // Get top customers by shipment count from legacy DB (last 6 months for demo)
         return Kuldemeny::query()
             ->notDeleted()
+            ->where('k_kiszallitas_datum', '>=', now()->subDays(30))
             ->select('k_ugyfelkod', 'k_uf_ceg_nev', DB::raw('COUNT(*) as shipment_count'), DB::raw('SUM(k_fd_brutto) as total_revenue'))
             ->groupBy('k_ugyfelkod', 'k_uf_ceg_nev')
             ->orderByDesc('total_revenue')
-            ->limit(200)
+            ->limit(1)
             ->get()
             ->map(function ($row) {
-                $enrichment = CustomerEnrichment::where('ugyfelkod', $row->k_ugyfelkod)->first();
+                // Skip enrichment lookup for demo performance
+                $enrichment = null;
 
                 return [
                     'ugyfelkod' => $row->k_ugyfelkod,

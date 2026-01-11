@@ -63,7 +63,9 @@
                     x-data="courierCoverageMap({
                         coverageData: @js($this->coverageData),
                         postalCodeLookup: @js($this->postalCodeLookup),
-                        selectedCourier: @js($selectedCourier)
+                        selectedCourier: @js($selectedCourier),
+                        geoJsonUrl: '{{ asset('data/budapest-postal-codes.geojson') }}',
+                        centroidsUrl: '{{ asset('data/hungary-postal-centroids.json') }}'
                     })"
                     x-on:courier-selected.window="handleCourierSelection($event.detail)"
                     class="h-[800px] w-full rounded-xl"

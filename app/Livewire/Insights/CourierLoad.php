@@ -534,6 +534,7 @@ class CourierLoad extends Component
             ')
             ->groupBy('futarrendeles.fr_futar', 'futar.f_nev')
             ->orderByDesc('orders')
+            ->limit(30)
             ->get();
 
         return [
@@ -661,7 +662,16 @@ class CourierLoad extends Component
             $query->whereRaw('('.implode(' OR ', $groupConditions).')');
         }
 
+        // Get top 20 couriers first for demo performance
+        $topCouriers = (clone $query)
+            ->selectRaw('futarrendeles.fr_futar as code, COUNT(*) as total')
+            ->groupBy('futarrendeles.fr_futar')
+            ->orderByDesc('total')
+            ->limit(20)
+            ->pluck('code');
+
         $data = $query
+            ->whereIn('futarrendeles.fr_futar', $topCouriers)
             ->selectRaw('
                 futarrendeles.fr_futar as code,
                 futar.f_nev as name,

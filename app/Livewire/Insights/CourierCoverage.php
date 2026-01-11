@@ -4,7 +4,6 @@ namespace App\Livewire\Insights;
 
 use App\Models\Legacy\Futar;
 use App\Models\Legacy\Futarkorok;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -23,6 +22,7 @@ class CourierCoverage extends Component
             ->notDeleted()
             ->whereNotNull('fk_terulet_ki')
             ->where('fk_terulet_ki', '!=', '')
+            ->limit(50)
             ->get();
 
         $courierNames = Futar::query()
@@ -153,7 +153,7 @@ class CourierCoverage extends Component
             return $search === $pattern;
         }
 
-        $regex = '/^' . str_replace('X', '\d', $pattern) . '$/';
+        $regex = '/^'.str_replace('X', '\d', $pattern).'$/';
 
         return (bool) preg_match($regex, $search);
     }

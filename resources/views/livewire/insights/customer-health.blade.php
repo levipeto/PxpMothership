@@ -4,19 +4,8 @@
         <div>
             <flux:heading size="xl">Ügyfél Egészség</flux:heading>
             <flux:text class="mt-1 text-zinc-500 dark:text-zinc-400">
-                Ügyfelek állapota {{ $year }} évi küldeményszám változása alapján (min. 5 küldemény)
+                Ügyfelek állapota az elmúlt 50 nap alapján (min. 10 küldemény)
             </flux:text>
-        </div>
-        <div class="flex gap-2">
-            @foreach($this->availableYears as $availableYear)
-                <flux:button
-                    wire:click="setYear({{ $availableYear }})"
-                    :variant="$year === $availableYear ? 'primary' : 'ghost'"
-                    size="sm"
-                >
-                    {{ $availableYear }}
-                </flux:button>
-            @endforeach
         </div>
     </div>
 
@@ -100,18 +89,16 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-sm font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
-                        <th class="sticky left-0 bg-zinc-50 px-4 py-3 dark:bg-zinc-800/50">Státusz</th>
-                        <th class="sticky left-20 bg-zinc-50 px-4 py-3 dark:bg-zinc-800/50">Cégnév</th>
-                        @for($m = 1; $m <= 12; $m++)
-                            <th class="px-3 py-3 text-right">{{ $this->monthLabels[$m] }}</th>
-                        @endfor
-                        <th class="px-4 py-3">Utolsó</th>
+                        <th class="px-4 py-3">Státusz</th>
+                        <th class="px-4 py-3">Cégnév</th>
+                        <th class="px-4 py-3 text-right">Küldemények</th>
+                        <th class="px-4 py-3 text-right">Utolsó küldemény</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @forelse($this->atRiskCustomers->items() as $customer)
                         <tr class="text-sm text-zinc-900 hover:bg-zinc-50 dark:text-zinc-100 dark:hover:bg-zinc-800/50">
-                            <td class="sticky left-0 bg-white px-4 py-3 dark:bg-zinc-800">
+                            <td class="px-4 py-3">
                                 @php
                                     $statusConfig = [
                                         'critical' => ['label' => 'Kritikus', 'bg' => 'bg-red-100 dark:bg-red-900/30', 'text' => 'text-red-800 dark:text-red-300'],
@@ -125,47 +112,16 @@
                                     {{ $config['label'] }}
                                 </span>
                             </td>
-                            <td class="sticky left-20 bg-white px-4 py-3 font-medium dark:bg-zinc-800">
+                            <td class="px-4 py-3 font-medium">
                                 {{ $customer['company_name'] ?: '-' }}
                             </td>
-                            @php
-                                $formatRevenue = fn($v) => $v >= 1000000 ? number_format($v / 1000000, 1) . 'M' : ($v >= 1000 ? number_format($v / 1000, 0) . 'k' : number_format($v, 0));
-                                $months = $customer['months'];
-                            @endphp
-                            @for($m = 1; $m <= 12; $m++)
-                                @php
-                                    $count = $months[$m]['count'];
-                                    $revenue = $months[$m]['revenue'];
-                                    $prevCount = $m > 1 ? $months[$m - 1]['count'] : 0;
-                                    $prevRevenue = $m > 1 ? $months[$m - 1]['revenue'] : 0;
-                                    $countDiff = $prevCount > 0 ? (($count - $prevCount) / $prevCount) * 100 : 0;
-                                    $revDiff = $prevRevenue > 0 ? (($revenue - $prevRevenue) / $prevRevenue) * 100 : 0;
-                                @endphp
-                                <td class="px-3 py-3 text-right tabular-nums">
-                                    @if($count > 0 || $revenue > 0)
-                                        <div class="flex flex-col items-end gap-0.5">
-                                            <div>
-                                                {{ $count }}
-                                                @if($m > 1 && $prevCount > 0)
-                                                    <span class="text-xs {{ $countDiff < 0 ? 'text-red-500' : 'text-green-500' }}">({{ $countDiff > 0 ? '+' : '' }}{{ number_format($countDiff, 0) }}%)</span>
-                                                @endif
-                                            </div>
-                                            <div class="text-xs text-zinc-500">
-                                                {{ $formatRevenue($revenue) }}
-                                                @if($m > 1 && $prevRevenue > 0)
-                                                    <span class="{{ $revDiff < 0 ? 'text-red-500' : 'text-green-500' }}">({{ $revDiff > 0 ? '+' : '' }}{{ number_format($revDiff, 0) }}%)</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-zinc-300">-</span>
-                                    @endif
-                                </td>
-                            @endfor
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-4 py-3 text-right tabular-nums">
+                                {{ number_format($customer['avg_previous']) }}
+                            </td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
                                 @if($customer['last_shipment'])
                                     <span class="text-zinc-600 dark:text-zinc-400">
-                                        {{ $customer['days_since_shipment'] }}d
+                                        {{ $customer['days_since_shipment'] }} napja
                                     </span>
                                 @else
                                     <span class="text-zinc-400">-</span>
@@ -174,7 +130,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="15" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                            <td colspan="4" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                                 Nincs figyelmet igénylő ügyfél
                             </td>
                         </tr>

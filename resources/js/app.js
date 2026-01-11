@@ -207,6 +207,8 @@ document.addEventListener('alpine:init', () => {
         coverageData: config.coverageData || [],
         postalCodeLookup: config.postalCodeLookup || {},
         selectedCourier: config.selectedCourier,
+        geoJsonUrl: config.geoJsonUrl || '/data/budapest-postal-codes.geojson',
+        centroidsUrl: config.centroidsUrl || '/data/hungary-postal-centroids.json',
         budapestGeoJSON: null,
         postalCentroids: null,
         layers: [],
@@ -220,8 +222,8 @@ document.addEventListener('alpine:init', () => {
         async loadData() {
             try {
                 const [geoResponse, centroidsResponse] = await Promise.all([
-                    fetch('/data/budapest-postal-codes.geojson'),
-                    fetch('/data/hungary-postal-centroids.json'),
+                    fetch(this.geoJsonUrl),
+                    fetch(this.centroidsUrl),
                 ]);
                 this.budapestGeoJSON = await geoResponse.json();
                 this.postalCentroids = await centroidsResponse.json();
